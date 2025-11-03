@@ -11,6 +11,10 @@ app.use(cors({ origin: true, credentials: true }));
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 
+// Ruta de salud
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// Usuarios mock
 const USERS = [
   { email:"admin@cie297.mil", password:"123456", nombres:"Admin", grado:"CNL", is_admin:true },
   { email:"user@cie297.mil",  password:"123456", nombres:"Oper",  grado:"SGTO", is_admin:false }
@@ -26,16 +30,11 @@ function auth(req,res,next){
   catch{ return res.status(401).json({message:"Token inválido"}); }
 }
 
-app.get("/api/health", (_req,res)=>res.json({ok:true}));
-
 app.post("/api/login", (req,res)=>{
   const {email,password} = req.body||{};
   const u = USERS.find(x=>x.email===email && x.password===password);
   if(!u) return res.status(401).json({message:"Credenciales inválidas"});
-  const token = jwt.sign(
-    {email:u.email,is_admin:u.is_admin,nombres:u.nombres,grado:u.grado},
-    JWT_SECRET,{expiresIn:"1d"}
-  );
+  const token = jwt.sign({email:u.email,is_admin:u.is_admin,nombres:u.nombres,grado:u.grado}, JWT_SECRET, {expiresIn:"1d"});
   ACCESOS.push({ created_at:new Date().toISOString(), email:u.email, estado:"OK" });
   res.json({ token, user:{email:u.email,is_admin:u.is_admin,nombres:u.nombres,grado:u.grado} });
 });
@@ -67,5 +66,8 @@ app.get("/api/admin/access", auth, (_req,res)=>{
   const limit = 50;
   res.json({ items: ACCESOS.slice(-limit).reverse() });
 });
+
+// Raíz informativa
+app.get("/", (_req,res)=>res.send("API CIE-297 OK"));
 
 app.listen(PORT, ()=>console.log("API ON", PORT));
